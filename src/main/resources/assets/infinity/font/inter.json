@@ -1,0 +1,11 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "infinity:inter.ttf",
+      "size": 10.0,
+      "oversample": 8.0,
+      "shift": [0, 0]
+    }
+  ]
+}
