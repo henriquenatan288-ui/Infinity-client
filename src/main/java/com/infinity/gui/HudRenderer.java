@@ -11,7 +11,7 @@ public final class HudRenderer {
 
 	public static void extract(GuiGraphicsExtractor g, DeltaTracker deltaTracker) {
 		Minecraft mc = Minecraft.getInstance();
-		if (mc.options.hideGui || mc.gui.screen() instanceof ClickGuiScreen) return;
+		if (mc.gui.screen() instanceof ClickGuiScreen) return;
 
 		int x = 6;
 		int y = 6;
