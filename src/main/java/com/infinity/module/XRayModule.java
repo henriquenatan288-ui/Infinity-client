@@ -1,7 +1,7 @@
 package com.infinity.module;
 
-import com.infinity.setting.ColorSetting;
 import com.infinity.setting.IntSetting;
+import com.infinity.setting.OreSetting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
@@ -10,51 +10,58 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class XRayModule extends Module {
 	private static final int MAX_BLOCKS = 64;
 	private static final int SCAN_INTERVAL_TICKS = 20;
 
-	private static final Set<Block> ORES = Set.of(
-			Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE,
-			Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE,
-			Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE,
-			Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE, Blocks.NETHER_GOLD_ORE,
-			Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE,
-			Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE,
-			Blocks.DIAMOND_ORE, Blocks.DEEPSLATE_DIAMOND_ORE,
-			Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE,
-			Blocks.NETHER_QUARTZ_ORE,
-			Blocks.ANCIENT_DEBRIS
-	);
-
 	private static XRayModule instance;
 	private static volatile List<int[]> blocks = List.of();
 
-	private final IntSetting range = add(new IntSetting("Range", 8, 24, 16, ""));
-	private final ColorSetting color = add(new ColorSetting("Line color", 0));
-	private final IntSetting fill = add(new IntSetting("Fill opacity", 0, 50, 15, "%"));
+	private final Map<Block, OreSetting> byBlock = new HashMap<>();
+
+	private final IntSetting range;
+	private final IntSetting fill;
 
 	private int cooldown = 0;
 
 	public XRayModule() {
 		super("X-Ray Hologram", Category.VISUALS);
 		instance = this;
+
+		range = add(new IntSetting("Range", 8, 24, 16, ""));
+		fill = add(new IntSetting("Fill opacity", 0, 50, 15, "%"));
+
+		// nome, ligado por padrao, cor (indice da paleta), blocos
+		ore("Diamond", true, 1, Blocks.DIAMOND_ORE, Blocks.DEEPSLATE_DIAMOND_ORE);
+		ore("Emerald", true, 2, Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE);
+		ore("Gold", true, 3, Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE, Blocks.NETHER_GOLD_ORE);
+		ore("Lapis", true, 0, Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE);
+		ore("Redstone", true, 5, Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE);
+		ore("Ancient Debris", true, 4, Blocks.ANCIENT_DEBRIS);
+		ore("Iron", false, 6, Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE);
+		ore("Copper", false, 4, Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE);
+		ore("Coal", false, 7, Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE);
+		ore("Quartz", false, 7, Blocks.NETHER_QUARTZ_ORE);
+	}
+
+	private void ore(String name, boolean on, int color, Block... list) {
+		OreSetting s = add(new OreSetting(name, on, color));
+		for (Block b : list) {
+			byBlock.put(b, s);
+		}
 	}
 
 	public static boolean active() {
 		return instance != null && instance.isEnabled();
 	}
 
+	/** Cada item: {x, y, z, corARGB}. */
 	public static List<int[]> blocks() {
 		return blocks;
-	}
-
-	public static float[] lineRgba() {
-		int c = instance == null ? 0xFF8A2BE2 : instance.color.get();
-		return new float[]{((c >> 16) & 0xFF) / 255f, ((c >> 8) & 0xFF) / 255f, (c & 0xFF) / 255f, 1f};
 	}
 
 	public static float fillAlpha() {
@@ -96,8 +103,9 @@ public class XRayModule extends Module {
 				for (int dz = -r; dz <= r; dz++) {
 					pos.set(cx + dx, cy + dy, cz + dz);
 					BlockState state = level.getBlockState(pos);
-					if (ORES.contains(state.getBlock())) {
-						found.add(new int[]{pos.getX(), pos.getY(), pos.getZ()});
+					OreSetting os = byBlock.get(state.getBlock());
+					if (os != null && os.enabled()) {
+						found.add(new int[]{pos.getX(), pos.getY(), pos.getZ(), os.color()});
 					}
 				}
 			}
