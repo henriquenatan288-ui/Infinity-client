@@ -2,23 +2,23 @@ package com.infinity.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.infinity.module.Module;
 import com.infinity.module.ModuleManager;
+import com.infinity.setting.Setting;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class Config {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-	private static final Type TYPE = new TypeToken<Map<String, Boolean>>() {}.getType();
 
 	private Config() {}
 
@@ -27,12 +27,19 @@ public final class Config {
 	}
 
 	public static void save() {
-		Map<String, Boolean> data = new LinkedHashMap<>();
+		JsonObject root = new JsonObject();
 		for (Module m : ModuleManager.all()) {
-			data.put(m.name, m.isEnabled());
+			JsonObject o = new JsonObject();
+			o.addProperty("enabled", m.isEnabled());
+			JsonObject s = new JsonObject();
+			for (Setting st : m.settings()) {
+				s.addProperty(st.name, st.toNumber());
+			}
+			o.add("settings", s);
+			root.add(m.name, o);
 		}
 		try (Writer w = Files.newBufferedWriter(file())) {
-			GSON.toJson(data, TYPE, w);
+			GSON.toJson(root, w);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -42,17 +49,29 @@ public final class Config {
 		Path f = file();
 		if (!Files.exists(f)) return;
 		try (Reader r = Files.newBufferedReader(f)) {
-			Map<String, Boolean> data = GSON.fromJson(r, TYPE);
-			if (data == null) return;
-			for (Map.Entry<String, Boolean> e : data.entrySet()) {
+			JsonElement parsed = JsonParser.parseReader(r);
+			if (parsed == null || !parsed.isJsonObject()) return;
+			for (Map.Entry<String, JsonElement> e : parsed.getAsJsonObject().entrySet()) {
 				Module m = ModuleManager.byName(e.getKey());
-				if (m != null) {
-					m.setEnabled(Boolean.TRUE.equals(e.getValue()));
-					m.toggleAnim = m.isEnabled() ? 1f : 0f;
+				if (m == null) continue;
+				JsonElement el = e.getValue();
+				if (el.isJsonPrimitive()) {
+					// formato antigo: so true/false
+					m.setEnabled(el.getAsBoolean());
+				} else if (el.isJsonObject()) {
+					JsonObject o = el.getAsJsonObject();
+					if (o.has("enabled")) m.setEnabled(o.get("enabled").getAsBoolean());
+					if (o.has("settings") && o.get("settings").isJsonObject()) {
+						JsonObject s = o.getAsJsonObject("settings");
+						for (Setting st : m.settings()) {
+							if (s.has(st.name)) st.fromNumber(s.get(st.name).getAsDouble());
+						}
+					}
 				}
+				m.toggleAnim = m.isEnabled() ? 1f : 0f;
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (Exception ex) {
+			ex.printStackTrace();
 		}
 	}
 }
