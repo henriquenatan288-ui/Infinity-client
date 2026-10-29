@@ -1,6 +1,7 @@
 package com.infinity.render;
 
 import com.infinity.module.XRayModule;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -9,7 +10,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.PrimitiveTopology;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Minecraft;
@@ -41,10 +41,7 @@ public final class XRayRenderer {
 	private static final StagedVertexBuffer STAGED =
 			new StagedVertexBuffer(() -> "Infinity XRay Buffer", RenderType.SMALL_BUFFER_SIZE);
 
-	private static final float R = 0.54f;
-	private static final float G = 0.17f;
-	private static final float B = 0.89f;
-	private static final float A = 0.45f;
+	private static final float HALF = 0.025f;
 
 	private XRayRenderer() {}
 
@@ -69,6 +66,10 @@ public final class XRayRenderer {
 				: null;
 		StagedVertexBuffer.Draw draw = STAGED.appendDraw(formatBinding, primitive, sorting);
 
+		float[] line = XRayModule.lineRgba();
+		float fillA = XRayModule.fillAlpha();
+		float[] fill = {line[0], line[1], line[2], fillA};
+
 		PoseStack pose = context.poseStack();
 		Vec3 cam = context.levelState().cameraRenderState.pos;
 		pose.pushPose();
@@ -76,7 +77,10 @@ public final class XRayRenderer {
 		VertexConsumer builder = STAGED.getVertexBuilder(draw);
 		Matrix4fc matrix = pose.last().pose();
 		for (int[] b : blocks) {
-			box(builder, matrix, b[0], b[1], b[2]);
+			if (fillA > 0f) {
+				fillBox(builder, matrix, b[0], b[1], b[2], fill);
+			}
+			outline(builder, matrix, b[0], b[1], b[2], line);
 		}
 		pose.popPose();
 
@@ -111,35 +115,76 @@ public final class XRayRenderer {
 		}
 	}
 
-	private static void box(VertexConsumer buf, Matrix4fc m, int bx, int by, int bz) {
+	private static void fillBox(VertexConsumer buf, Matrix4fc m, int bx, int by, int bz, float[] c) {
 		float e = 0.003f;
 		float x0 = bx - e, y0 = by - e, z0 = bz - e;
 		float x1 = bx + 1 + e, y1 = by + 1 + e, z1 = bz + 1 + e;
 
-		quad(buf, m, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1); // baixo
-		quad(buf, m, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0); // cima
-		quad(buf, m, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0); // norte
-		quad(buf, m, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1); // sul
-		quad(buf, m, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0); // oeste
-		quad(buf, m, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1); // leste
+		quad(buf, m, c, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1);
+		quad(buf, m, c, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0);
+		quad(buf, m, c, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0);
+		quad(buf, m, c, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1);
+		quad(buf, m, c, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0);
+		quad(buf, m, c, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1);
+	}
+
+	/** As 12 arestas do bloco, cada uma como duas faixas finas cruzadas. */
+	private static void outline(VertexConsumer buf, Matrix4fc m, int bx, int by, int bz, float[] c) {
+		float x0 = bx, y0 = by, z0 = bz;
+		float x1 = bx + 1f, y1 = by + 1f, z1 = bz + 1f;
+		float[] ys = {y0, y1};
+		float[] zs = {z0, z1};
+		float[] xs = {x0, x1};
+
+		for (float y : ys) {
+			for (float z : zs) {
+				edge(buf, m, c, x0, y, z, x1, y, z, 0f, 1f, 0f, 0f, 0f, 1f);
+			}
+		}
+		for (float x : xs) {
+			for (float z : zs) {
+				edge(buf, m, c, x, y0, z, x, y1, z, 1f, 0f, 0f, 0f, 0f, 1f);
+			}
+		}
+		for (float x : xs) {
+			for (float y : ys) {
+				edge(buf, m, c, x, y, z0, x, y, z1, 1f, 0f, 0f, 0f, 1f, 0f);
+			}
+		}
+	}
+
+	private static void edge(VertexConsumer buf, Matrix4fc m, float[] c,
+							 float px, float py, float pz, float qx, float qy, float qz,
+							 float ux, float uy, float uz, float vx, float vy, float vz) {
+		float h = HALF;
+		quad(buf, m, c,
+				px - ux * h, py - uy * h, pz - uz * h,
+				qx - ux * h, qy - uy * h, qz - uz * h,
+				qx + ux * h, qy + uy * h, qz + uz * h,
+				px + ux * h, py + uy * h, pz + uz * h);
+		quad(buf, m, c,
+				px - vx * h, py - vy * h, pz - vz * h,
+				qx - vx * h, qy - vy * h, qz - vz * h,
+				qx + vx * h, qy + vy * h, qz + vz * h,
+				px + vx * h, py + vy * h, pz + vz * h);
 	}
 
 	/** Escreve a face nos dois sentidos, assim nao importa se o pipeline descarta faces de tras. */
-	private static void quad(VertexConsumer buf, Matrix4fc m,
+	private static void quad(VertexConsumer buf, Matrix4fc m, float[] c,
 							 float ax, float ay, float az, float bx, float by, float bz,
 							 float cx, float cy, float cz, float dx, float dy, float dz) {
-		v(buf, m, ax, ay, az);
-		v(buf, m, bx, by, bz);
-		v(buf, m, cx, cy, cz);
-		v(buf, m, dx, dy, dz);
+		v(buf, m, c, ax, ay, az);
+		v(buf, m, c, bx, by, bz);
+		v(buf, m, c, cx, cy, cz);
+		v(buf, m, c, dx, dy, dz);
 
-		v(buf, m, dx, dy, dz);
-		v(buf, m, cx, cy, cz);
-		v(buf, m, bx, by, bz);
-		v(buf, m, ax, ay, az);
+		v(buf, m, c, dx, dy, dz);
+		v(buf, m, c, cx, cy, cz);
+		v(buf, m, c, bx, by, bz);
+		v(buf, m, c, ax, ay, az);
 	}
 
-	private static void v(VertexConsumer buf, Matrix4fc m, float x, float y, float z) {
-		buf.addVertex(m, x, y, z).setColor(R, G, B, A);
+	private static void v(VertexConsumer buf, Matrix4fc m, float[] c, float x, float y, float z) {
+		buf.addVertex(m, x, y, z).setColor(c[0], c[1], c[2], c[3]);
 	}
 }
