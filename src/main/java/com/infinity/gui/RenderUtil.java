@@ -20,25 +20,33 @@ public final class RenderUtil {
 		return (aa << 24) | (ar << 16) | (ag << 8) | ab;
 	}
 
+	/** Retangulo arredondado com borda suavizada (pixel de transicao com alfa parcial). */
 	public static void roundRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
 		if (w <= 0 || h <= 0) return;
 		int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
 		for (int i = 0; i < h; i++) {
-			int inset = 0;
+			double edge = 0.0;
 			if (r > 0) {
 				if (i < r) {
-					inset = cornerInset(r, r - i - 0.5);
+					edge = cornerEdge(r, r - i - 0.5);
 				} else if (i >= h - r) {
-					inset = cornerInset(r, i + 0.5 - (h - r));
+					edge = cornerEdge(r, i + 0.5 - (h - r));
 				}
 			}
-			g.fill(x + inset, y + i, x + w - inset, y + i + 1, color);
+			int full = (int) Math.ceil(edge);
+			g.fill(x + full, y + i, x + w - full, y + i + 1, color);
+			if (full > edge && full >= 1) {
+				float coverage = (float) (full - edge);
+				int c = alpha(color, coverage);
+				g.fill(x + full - 1, y + i, x + full, y + i + 1, c);
+				g.fill(x + w - full, y + i, x + w - full + 1, y + i + 1, c);
+			}
 		}
 	}
 
-	private static int cornerInset(int r, double dy) {
+	private static double cornerEdge(int r, double dy) {
 		double dx = Math.sqrt(Math.max(0.0, (double) r * r - dy * dy));
-		return (int) Math.round(r - dx);
+		return r - dx;
 	}
 
 	public static boolean inside(double mx, double my, int x, int y, int w, int h) {
