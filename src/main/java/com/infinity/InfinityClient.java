@@ -4,6 +4,7 @@ import com.infinity.config.Config;
 import com.infinity.gui.ClickGuiScreen;
 import com.infinity.gui.HudRenderer;
 import com.infinity.module.ModuleManager;
+import com.infinity.render.XRayRenderer;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -50,6 +51,11 @@ public class InfinityClient implements ClientModInitializer {
 				HudRenderer::extract
 		);
 
-		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> Config.save());
+		XRayRenderer.init();
+
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+			Config.save();
+			XRayRenderer.close();
+		});
 	}
 }
