@@ -3,6 +3,7 @@ package com.infinity;
 import com.infinity.config.Config;
 import com.infinity.gui.ClickGuiScreen;
 import com.infinity.gui.HudRenderer;
+import com.infinity.module.Module;
 import com.infinity.module.ModuleManager;
 import com.infinity.render.XRayRenderer;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -18,6 +19,7 @@ import org.lwjgl.glfw.GLFW;
 
 public class InfinityClient implements ClientModInitializer {
 	private static KeyMapping openGui;
+	private static KeyMapping openXraySettings;
 
 	@Override
 	public void onInitializeClient() {
@@ -34,10 +36,24 @@ public class InfinityClient implements ClientModInitializer {
 				category
 		));
 
+		// Sem tecla por padrao: voce escolhe em Controles > Infinity.
+		openXraySettings = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.infinity.xray_settings",
+				InputConstants.Type.KEYSYM,
+				GLFW.GLFW_KEY_UNKNOWN,
+				category
+		));
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (openGui.consumeClick()) {
 				if (client.gui.screen() == null) {
 					client.gui.setScreen(new ClickGuiScreen());
+				}
+			}
+			while (openXraySettings.consumeClick()) {
+				if (client.gui.screen() == null) {
+					Module xray = ModuleManager.byName("X-Ray Hologram");
+					client.gui.setScreen(new ClickGuiScreen(xray));
 				}
 			}
 			if (client.player != null) {
