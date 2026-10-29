@@ -27,6 +27,8 @@ public class ClickGuiScreen extends Screen {
 	private static final int ROW_H = 20;
 	private static final int SEARCH_H = 20;
 
+	private final LeafParticles leaves = new LeafParticles();
+
 	private Category selected = Category.VISUALS;
 	private String search = "";
 	private boolean searchFocused = false;
@@ -77,8 +79,11 @@ public class ClickGuiScreen extends Screen {
 		px = (this.width - panelW) / 2;
 		py = (this.height - panelH) / 2 + (int) ((1f - a) * 8f);
 
-		g.fill(0, 0, this.width, this.height, RenderUtil.alpha(0x66000000, a));
+		g.fill(0, 0, this.width, this.height, RenderUtil.alpha(0x44000000, a));
 		RenderUtil.roundRect(g, px, py, panelW, panelH, 8, RenderUtil.alpha(Theme.PANEL, a));
+
+		leaves.update(speed, panelW, panelH);
+		leaves.render(g, px, py, panelW, panelH, a);
 
 		renderSidebar(g, mouseX, mouseY, a);
 		renderSearch(g, a);
@@ -112,11 +117,11 @@ public class ClickGuiScreen extends Screen {
 		int color;
 		if (search.isEmpty() && !searchFocused) {
 			shown = "Search all modules...";
-			color = Theme.TEXT_DIM;
+			color = Theme.TEXT_PLACEHOLDER;
 		} else {
 			boolean blink = searchFocused && (System.currentTimeMillis() / 500) % 2 == 0;
 			shown = search + (blink ? "|" : "");
-			color = Theme.TEXT;
+			color = Theme.TEXT_INPUT;
 		}
 		FontUtil.draw(g, shown, x + 8, y + (SEARCH_H - FontUtil.height()) / 2, RenderUtil.alpha(color, a));
 	}
@@ -134,7 +139,7 @@ public class ClickGuiScreen extends Screen {
 		scroll = Mth.lerp(Math.min(1f, speed * 0.25f), scroll, scrollTarget);
 
 		if (mods.isEmpty()) {
-			FontUtil.draw(g, "No modules", x + 8, y + 4, RenderUtil.alpha(Theme.TEXT_DIM, a));
+			FontUtil.draw(g, "No modules", x + 8, y + 4, RenderUtil.alpha(Theme.TEXT_PLACEHOLDER, a));
 			return;
 		}
 
@@ -156,7 +161,7 @@ public class ClickGuiScreen extends Screen {
 						RenderUtil.alpha(Theme.MODULE_ON, a * m.toggleAnim));
 			}
 
-			int textColor = RenderUtil.mix(Theme.TEXT_DIM, Theme.TEXT, Math.max(m.toggleAnim, m.hoverAnim));
+			int textColor = RenderUtil.mix(Theme.TEXT_DIM, Theme.TEXT, m.toggleAnim);
 			FontUtil.draw(g, m.name, x + 8, ry + (ROW_H - 2 - FontUtil.height()) / 2,
 					RenderUtil.alpha(textColor, a));
 			ry += ROW_H;
