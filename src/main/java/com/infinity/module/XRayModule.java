@@ -2,18 +2,32 @@ package com.infinity.module;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 public class XRayModule extends Module {
 	private static final int RADIUS = 16;
 	private static final int MAX_BLOCKS = 128;
 	private static final int SCAN_INTERVAL_TICKS = 20;
+
+	private static final Set<Block> ORES = Set.of(
+			Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE,
+			Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE,
+			Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE,
+			Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE, Blocks.NETHER_GOLD_ORE,
+			Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE,
+			Blocks.LAPIS_ORE, Blocks.DEEPSLATE_LAPIS_ORE,
+			Blocks.DIAMOND_ORE, Blocks.DEEPSLATE_DIAMOND_ORE,
+			Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE,
+			Blocks.NETHER_QUARTZ_ORE,
+			Blocks.ANCIENT_DEBRIS
+	);
 
 	private static XRayModule instance;
 	private static volatile List<int[]> blocks = List.of();
@@ -67,7 +81,7 @@ public class XRayModule extends Module {
 				for (int dz = -RADIUS; dz <= RADIUS; dz++) {
 					pos.set(cx + dx, cy + dy, cz + dz);
 					BlockState state = level.getBlockState(pos);
-					if (isOre(state)) {
+					if (ORES.contains(state.getBlock())) {
 						found.add(new int[]{pos.getX(), pos.getY(), pos.getZ()});
 					}
 				}
@@ -84,17 +98,5 @@ public class XRayModule extends Module {
 			found = new ArrayList<>(found.subList(0, MAX_BLOCKS));
 		}
 		blocks = found;
-	}
-
-	private static boolean isOre(BlockState s) {
-		return s.is(BlockTags.COAL_ORES)
-				|| s.is(BlockTags.IRON_ORES)
-				|| s.is(BlockTags.COPPER_ORES)
-				|| s.is(BlockTags.GOLD_ORES)
-				|| s.is(BlockTags.REDSTONE_ORES)
-				|| s.is(BlockTags.LAPIS_ORES)
-				|| s.is(BlockTags.DIAMOND_ORES)
-				|| s.is(BlockTags.EMERALD_ORES)
-				|| s.is(Blocks.ANCIENT_DEBRIS);
 	}
 }
