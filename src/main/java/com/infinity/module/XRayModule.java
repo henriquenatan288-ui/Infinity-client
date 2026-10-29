@@ -1,5 +1,7 @@
 package com.infinity.module;
 
+import com.infinity.setting.ColorSetting;
+import com.infinity.setting.IntSetting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
@@ -12,8 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 public class XRayModule extends Module {
-	private static final int RADIUS = 16;
-	private static final int MAX_BLOCKS = 128;
+	private static final int MAX_BLOCKS = 64;
 	private static final int SCAN_INTERVAL_TICKS = 20;
 
 	private static final Set<Block> ORES = Set.of(
@@ -32,6 +33,10 @@ public class XRayModule extends Module {
 	private static XRayModule instance;
 	private static volatile List<int[]> blocks = List.of();
 
+	private final IntSetting range = add(new IntSetting("Range", 8, 24, 16, ""));
+	private final ColorSetting color = add(new ColorSetting("Line color", 0));
+	private final IntSetting fill = add(new IntSetting("Fill opacity", 0, 50, 15, "%"));
+
 	private int cooldown = 0;
 
 	public XRayModule() {
@@ -45,6 +50,15 @@ public class XRayModule extends Module {
 
 	public static List<int[]> blocks() {
 		return blocks;
+	}
+
+	public static float[] lineRgba() {
+		int c = instance == null ? 0xFF8A2BE2 : instance.color.get();
+		return new float[]{((c >> 16) & 0xFF) / 255f, ((c >> 8) & 0xFF) / 255f, (c & 0xFF) / 255f, 1f};
+	}
+
+	public static float fillAlpha() {
+		return instance == null ? 0f : instance.fill.get() / 100f;
 	}
 
 	@Override
@@ -69,6 +83,7 @@ public class XRayModule extends Module {
 			return;
 		}
 
+		int r = range.get();
 		BlockPos center = mc.player.blockPosition();
 		int cx = center.getX();
 		int cy = center.getY();
@@ -76,9 +91,9 @@ public class XRayModule extends Module {
 
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		List<int[]> found = new ArrayList<>();
-		for (int dx = -RADIUS; dx <= RADIUS; dx++) {
-			for (int dy = -RADIUS; dy <= RADIUS; dy++) {
-				for (int dz = -RADIUS; dz <= RADIUS; dz++) {
+		for (int dx = -r; dx <= r; dx++) {
+			for (int dy = -r; dy <= r; dy++) {
+				for (int dz = -r; dz <= r; dz++) {
 					pos.set(cx + dx, cy + dy, cz + dz);
 					BlockState state = level.getBlockState(pos);
 					if (ORES.contains(state.getBlock())) {
