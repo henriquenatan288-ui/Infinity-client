@@ -11,6 +11,10 @@ public final class ModuleManager {
 	public static void init() {
 		MODULES.clear();
 		MODULES.add(new XRayModule());
+		MODULES.add(new FlyModule());
+		MODULES.add(new SpeedModule());
+		MODULES.add(new JesusModule());
+		MODULES.add(new AutoEatModule());
 	}
 
 	public static List<Module> all() {
