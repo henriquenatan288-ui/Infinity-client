@@ -19,6 +19,9 @@ public final class ModuleManager {
 		MODULES.add(new PlayerEspModule());
 		MODULES.add(new StorageEspModule());
 		MODULES.add(new TracersModule());
+		MODULES.add(new SusHoleFinderModule());
+		MODULES.add(new SusChunkFinderModule());
+		MODULES.add(new SlowHitModule());
 		MODULES.add(new FlyModule());
 		MODULES.add(new SpeedModule());
 		MODULES.add(new JesusModule());
