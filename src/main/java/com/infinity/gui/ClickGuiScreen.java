@@ -6,6 +6,7 @@ import com.infinity.module.Module;
 import com.infinity.module.ModuleManager;
 import com.infinity.setting.ColorSetting;
 import com.infinity.setting.IntSetting;
+import com.infinity.setting.OreSetting;
 import com.infinity.setting.Setting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -33,6 +34,8 @@ public class ClickGuiScreen extends Screen {
 	private static final int DOTS_W = 30;
 	private static final int INT_ROW_H = 30;
 	private static final int COLOR_ROW_H = 38;
+	private static final int ORE_ROW_H = 18;
+	private static final int CHIP_W = 28;
 	private static final int SWATCH = 14;
 	private static final int SWATCH_GAP = 5;
 	private static final int BODY_R = 12;
@@ -46,6 +49,8 @@ public class ClickGuiScreen extends Screen {
 	private IntSetting dragging = null;
 	private int dragX = 0;
 	private int dragW = 1;
+	private Runnable pendingClick = null;
+	private double dragAccum = 0;
 
 	private String search = "";
 	private boolean searchFocused = false;
@@ -103,6 +108,7 @@ public class ClickGuiScreen extends Screen {
 	private int listH() { return panelH - (listY() - py) - PAD; }
 
 	private static int rowH(Setting s) {
+		if (s instanceof OreSetting) return ORE_ROW_H;
 		return s instanceof ColorSetting ? COLOR_ROW_H : INT_ROW_H;
 	}
 
@@ -133,7 +139,7 @@ public class ClickGuiScreen extends Screen {
 		renderSidebar(g, mouseX, mouseY, a);
 		renderSearch(g, a);
 		if (settingsOf != null && search.isEmpty()) {
-			renderSettings(g, mouseX, mouseY, a);
+			renderSettings(g, mouseX, mouseY, speed, a);
 		} else {
 			renderModules(g, mouseX, mouseY, speed, a);
 		}
@@ -255,22 +261,32 @@ public class ClickGuiScreen extends Screen {
 		g.disableScissor();
 	}
 
-	private void renderSettings(GuiGraphicsExtractor g, int mx, int my, float a) {
+	private void renderSettings(GuiGraphicsExtractor g, int mx, int my, float speed, float a) {
 		int x = listX();
 		int y = listY();
 		int w = listW();
 		int h = listH();
 		int fh = FontUtil.height();
 
-		g.enableScissor(x, y, x + w, y + h);
-
+		// linha "< Modulo" fica fixa no topo
 		boolean hoverBack = RenderUtil.inside(mx, my, x, y, w, ROW_H - 2);
 		if (hoverBack) {
 			RenderUtil.roundRect(g, x, y, w, ROW_H - 2, 5, RenderUtil.alpha(TimeTheme.hover, a));
 		}
 		FontUtil.draw(g, "< " + settingsOf.name, x + 8, y + (ROW_H - 2 - fh) / 2, RenderUtil.alpha(TimeTheme.dim, a));
 
-		int ry = y + ROW_H + 4;
+		int ly = y + ROW_H;
+		int lh = h - ROW_H;
+		int contentH = 4;
+		for (Setting s : settingsOf.settings()) {
+			contentH += rowH(s);
+		}
+		float maxScroll = Math.max(0, contentH - lh);
+		scrollTarget = Mth.clamp(scrollTarget, 0, maxScroll);
+		scroll = Mth.lerp(Math.min(1f, speed * 0.25f), scroll, scrollTarget);
+
+		g.enableScissor(x, ly, x + w, ly + lh);
+		int ry = ly + 4 - Math.round(scroll);
 		for (Setting s : settingsOf.settings()) {
 			if (s instanceof IntSetting is) {
 				FontUtil.draw(g, is.name, x + 8, ry, RenderUtil.alpha(TimeTheme.dim, a));
@@ -298,24 +314,58 @@ public class ClickGuiScreen extends Screen {
 					RenderUtil.roundRect(g, sx, sy, SWATCH, SWATCH, 3,
 							RenderUtil.alpha(ColorSetting.PALETTE[i], a));
 				}
+			} else if (s instanceof OreSetting os) {
+				int rh = ORE_ROW_H - 2;
+				boolean hover = RenderUtil.inside(mx, my, x, ry, w, rh)
+						&& RenderUtil.inside(mx, my, x, ly, w, lh);
+				if (hover) {
+					RenderUtil.roundRect(g, x, ry, w, rh, 5, RenderUtil.alpha(TimeTheme.hover, a));
+				}
+				int bx = x + 8;
+				int by = ry + (rh - 12) / 2;
+				RenderUtil.roundRect(g, bx, by, 12, 12, 3, RenderUtil.alpha(TimeTheme.search, a));
+				if (os.enabled()) {
+					RenderUtil.roundRect(g, bx + 2, by + 2, 8, 8, 2, RenderUtil.alpha(Theme.ACCENT, a));
+				}
+				int textColor = os.enabled() ? TimeTheme.input : TimeTheme.placeholder;
+				FontUtil.draw(g, os.name, bx + 18, ry + (rh - fh) / 2, RenderUtil.alpha(textColor, a));
+
+				int cx = x + w - 8 - CHIP_W;
+				RenderUtil.roundRect(g, cx - 1, by - 2, CHIP_W + 2, 16, 5, RenderUtil.alpha(TimeTheme.dim, a * 0.5f));
+				RenderUtil.roundRect(g, cx, by - 1, CHIP_W, 14, 4, RenderUtil.alpha(os.color(), a));
 			}
 			ry += rowH(s);
 		}
 		g.disableScissor();
+
+		// barra de rolagem
+		if (maxScroll > 0) {
+			int thumbH = Math.max(10, Math.round(lh * (lh / (float) contentH)));
+			int thumbY = ly + Math.round((lh - thumbH) * (scroll / maxScroll));
+			RenderUtil.roundRect(g, x + w - 3, thumbY, 2, thumbH, 1, RenderUtil.alpha(TimeTheme.dim, a * 0.6f));
+		}
 	}
 
 	private boolean clickSettings(double mx, double my) {
 		int x = listX();
 		int y = listY();
 		int w = listW();
+		int h = listH();
 		int fh = FontUtil.height();
 
 		if (RenderUtil.inside(mx, my, x, y, w, ROW_H - 2)) {
 			settingsOf = null;
+			scroll = 0f;
+			scrollTarget = 0f;
 			return true;
 		}
 
-		int ry = y + ROW_H + 4;
+		int ly = y + ROW_H;
+		int lh = h - ROW_H;
+		dragAccum = 0;
+		if (!RenderUtil.inside(mx, my, x, ly, w, lh)) return true;
+
+		int ry = ly + 4 - Math.round(scroll);
 		for (Setting s : settingsOf.settings()) {
 			if (s instanceof IntSetting is) {
 				int tx = x + 8;
@@ -337,6 +387,16 @@ public class ClickGuiScreen extends Screen {
 						Config.save();
 						return true;
 					}
+				}
+			} else if (s instanceof OreSetting os) {
+				if (RenderUtil.inside(mx, my, x, ry, w, ORE_ROW_H - 2)) {
+					final boolean onChip = mx >= x + w - 8 - CHIP_W - 4;
+					// so age ao soltar, e so se o dedo nao arrastou (arrastar = rolar a lista)
+					pendingClick = () -> {
+						if (onChip) os.cycleColor(); else os.toggle();
+						Config.save();
+					};
+					return true;
 				}
 			}
 			ry += rowH(s);
@@ -385,6 +445,8 @@ public class ClickGuiScreen extends Screen {
 						if (hasSettings && (button == 1 || (button == 0 && onDots))) {
 							settingsOf = m;
 							search = "";
+							scroll = 0f;
+							scrollTarget = 0f;
 							return true;
 						}
 						if (button == 0) {
@@ -412,6 +474,11 @@ public class ClickGuiScreen extends Screen {
 			dragging.setFraction((float) ((click.x() - dragX) / dragW));
 			return true;
 		}
+		if (settingsOf != null && search.isEmpty()) {
+			dragAccum += Math.abs(offsetX) + Math.abs(offsetY);
+			scrollTarget -= (float) offsetY;
+			return true;
+		}
 		return super.mouseDragged(click, offsetX, offsetY);
 	}
 
@@ -420,6 +487,13 @@ public class ClickGuiScreen extends Screen {
 		if (dragging != null) {
 			dragging = null;
 			Config.save();
+			return true;
+		}
+		if (pendingClick != null) {
+			Runnable r = pendingClick;
+			pendingClick = null;
+			if (dragAccum < 6) r.run();
+			dragAccum = 0;
 			return true;
 		}
 		return super.mouseReleased(click);
