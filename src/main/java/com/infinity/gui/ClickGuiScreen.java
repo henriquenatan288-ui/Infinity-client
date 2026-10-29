@@ -20,7 +20,6 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 
 public class ClickGuiScreen extends Screen {
 	private static final int MAX_W = 420;
@@ -38,9 +37,6 @@ public class ClickGuiScreen extends Screen {
 	private static final int CHIP_W = 28;
 	private static final int SWATCH = 14;
 	private static final int SWATCH_GAP = 5;
-	private static final int BODY_R = 12;
-
-	private static final float[][] STARS = makeStars();
 
 	private final LeafParticles leaves = new LeafParticles();
 
@@ -62,7 +58,6 @@ public class ClickGuiScreen extends Screen {
 	private int panelW = MAX_W;
 	private int panelH = MAX_H;
 	private int px, py;
-	private int bodyX, bodyY;
 
 	public ClickGuiScreen() {
 		this(null);
@@ -75,16 +70,6 @@ public class ClickGuiScreen extends Screen {
 			this.settingsOf = openSettings;
 			this.selected = openSettings.category;
 		}
-	}
-
-	private static float[][] makeStars() {
-		Random r = new Random(42);
-		float[][] s = new float[14][2];
-		for (float[] star : s) {
-			star[0] = r.nextFloat();
-			star[1] = r.nextFloat();
-		}
-		return s;
 	}
 
 	@Override
@@ -131,7 +116,7 @@ public class ClickGuiScreen extends Screen {
 		g.fill(0, 0, this.width, this.height, RenderUtil.alpha(0x44000000, a));
 		RenderUtil.roundRect(g, px, py, panelW, panelH, 8, RenderUtil.alpha(TimeTheme.panel, a));
 
-		renderSky(g, a);
+		GuiVisuals.render(g, px, py, panelW, panelH, a);
 
 		leaves.update(speed, panelW, panelH);
 		leaves.render(g, px, py, panelW, panelH, a);
@@ -142,39 +127,6 @@ public class ClickGuiScreen extends Screen {
 			renderSettings(g, mouseX, mouseY, speed, a);
 		} else {
 			renderModules(g, mouseX, mouseY, speed, a);
-		}
-	}
-
-	private void renderSky(GuiGraphicsExtractor g, float a) {
-		if (TimeTheme.night > 0.05f) {
-			float t = System.currentTimeMillis() / 1000f;
-			for (int i = 0; i < STARS.length; i++) {
-				float tw = 0.5f + 0.5f * (float) Math.sin(t * 2f + i * 1.7f);
-				int sx = px + 10 + Math.round(STARS[i][0] * (panelW - 20));
-				int sy = py + 8 + Math.round(STARS[i][1] * (panelH * 0.6f));
-				int c = RenderUtil.alpha(0xFFFFFFFF, a * TimeTheme.night * (0.35f + 0.5f * tw));
-				g.fill(sx, sy, sx + 2, sy + 2, c);
-			}
-		}
-
-		float t = TimeTheme.bodyT;
-		float lift = (float) Math.sin(Math.PI * t);
-		bodyX = px + 18 + Math.round(t * (panelW - 36));
-		bodyY = Math.max(py + 20, py + panelH - 18 - Math.round(lift * panelH * 0.45f));
-
-		if (TimeTheme.sunUp) {
-			float low = Mth.clamp((1f - lift) * 1.6f, 0f, 1f);
-			int col = RenderUtil.mix(0xFFFFC83D, 0xFFFF7A3D, low);
-			RenderUtil.roundRect(g, bodyX - 22, bodyY - 22, 44, 44, 22, RenderUtil.alpha(col, a * 0.18f));
-			RenderUtil.roundRect(g, bodyX - BODY_R, bodyY - BODY_R, BODY_R * 2, BODY_R * 2, BODY_R,
-					RenderUtil.alpha(col, a * 0.85f));
-		} else {
-			RenderUtil.roundRect(g, bodyX - 22, bodyY - 22, 44, 44, 22, RenderUtil.alpha(0xFFB9A4FF, a * 0.12f));
-			RenderUtil.roundRect(g, bodyX - BODY_R, bodyY - BODY_R, BODY_R * 2, BODY_R * 2, BODY_R,
-					RenderUtil.alpha(0xFFE9E1FF, a * 0.9f));
-			// recorte pra virar uma lua crescente
-			RenderUtil.roundRect(g, bodyX - BODY_R + 6, bodyY - BODY_R - 3, BODY_R * 2 - 2, BODY_R * 2 - 2,
-					BODY_R - 1, RenderUtil.alpha(TimeTheme.panel, a));
 		}
 	}
 
@@ -460,11 +412,6 @@ public class ClickGuiScreen extends Screen {
 			}
 		}
 
-		// toque no sol/lua (em area vazia): alterna Auto, Dia, Por do sol, Noite
-		if (RenderUtil.inside(mx, my, bodyX - 16, bodyY - 16, 32, 32)) {
-			TimeTheme.cycleOverride();
-			return true;
-		}
 		return super.mouseClicked(click, doubled);
 	}
 
