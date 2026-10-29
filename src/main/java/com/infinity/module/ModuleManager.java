@@ -1,5 +1,8 @@
 package com.infinity.module;
 
+import com.infinity.render.EspRenderer;
+import com.infinity.render.EspSource;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,11 +13,23 @@ public final class ModuleManager {
 
 	public static void init() {
 		MODULES.clear();
+		EspRenderer.clearSources();
+
 		MODULES.add(new XRayModule());
+		MODULES.add(new PlayerEspModule());
+		MODULES.add(new StorageEspModule());
+		MODULES.add(new TracersModule());
 		MODULES.add(new FlyModule());
 		MODULES.add(new SpeedModule());
 		MODULES.add(new JesusModule());
 		MODULES.add(new AutoEatModule());
+
+		for (Module m : MODULES) {
+			if (m instanceof EspSource s) {
+				EspRenderer.register(s);
+			}
+		}
+		EspRenderer.init();
 	}
 
 	public static List<Module> all() {
