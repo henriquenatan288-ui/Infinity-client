@@ -18,13 +18,14 @@ import java.util.List;
 import java.util.Locale;
 
 public class ClickGuiScreen extends Screen {
-	private static final int W = 420;
-	private static final int H = 300;
-	private static final int PAD = 10;
-	private static final int SIDEBAR_W = 120;
-	private static final int CAT_H = 28;
+	private static final int MAX_W = 420;
+	private static final int MAX_H = 300;
+	private static final int MARGIN = 8;
+	private static final int PAD = 8;
+	private static final int SIDEBAR_W = 100;
+	private static final int CAT_H = 24;
 	private static final int ROW_H = 20;
-	private static final int SEARCH_H = 22;
+	private static final int SEARCH_H = 20;
 
 	private Category selected = Category.VISUALS;
 	private String search = "";
@@ -34,6 +35,8 @@ public class ClickGuiScreen extends Screen {
 	private float openAnim = 0f;
 	private long lastNanos = 0L;
 
+	private int panelW = MAX_W;
+	private int panelH = MAX_H;
 	private int px, py;
 
 	public ClickGuiScreen() {
@@ -56,9 +59,9 @@ public class ClickGuiScreen extends Screen {
 	}
 
 	private int listX() { return px + PAD + SIDEBAR_W + PAD; }
-	private int listY() { return py + PAD + SEARCH_H + 8; }
-	private int listW() { return W - PAD * 3 - SIDEBAR_W; }
-	private int listH() { return H - (listY() - py) - PAD; }
+	private int listY() { return py + PAD + SEARCH_H + 6; }
+	private int listW() { return panelW - PAD * 3 - SIDEBAR_W; }
+	private int listH() { return panelH - (listY() - py) - PAD; }
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
@@ -69,11 +72,13 @@ public class ClickGuiScreen extends Screen {
 		openAnim = Mth.lerp(Math.min(1f, speed * 0.2f), openAnim, 1f);
 		float a = openAnim;
 
-		px = (this.width - W) / 2;
-		py = (this.height - H) / 2 + (int) ((1f - a) * 12f);
+		panelW = Math.max(220, Math.min(MAX_W, this.width - MARGIN * 2));
+		panelH = Math.max(120, Math.min(MAX_H, this.height - MARGIN * 2));
+		px = (this.width - panelW) / 2;
+		py = (this.height - panelH) / 2 + (int) ((1f - a) * 8f);
 
 		g.fill(0, 0, this.width, this.height, RenderUtil.alpha(0x66000000, a));
-		RenderUtil.roundRect(g, px, py, W, H, 10, RenderUtil.alpha(Theme.PANEL, a));
+		RenderUtil.roundRect(g, px, py, panelW, panelH, 8, RenderUtil.alpha(Theme.PANEL, a));
 
 		renderSidebar(g, mouseX, mouseY, a);
 		renderSearch(g, a);
@@ -87,12 +92,12 @@ public class ClickGuiScreen extends Screen {
 			boolean active = c == selected && search.isEmpty();
 			boolean hover = RenderUtil.inside(mx, my, x, y, SIDEBAR_W, CAT_H - 4);
 			if (active) {
-				RenderUtil.roundRect(g, x, y, SIDEBAR_W, CAT_H - 4, 6, RenderUtil.alpha(Theme.SIDEBAR_ITEM_ACTIVE, a));
+				RenderUtil.roundRect(g, x, y, SIDEBAR_W, CAT_H - 4, 5, RenderUtil.alpha(Theme.SIDEBAR_ITEM_ACTIVE, a));
 			} else if (hover) {
-				RenderUtil.roundRect(g, x, y, SIDEBAR_W, CAT_H - 4, 6, RenderUtil.alpha(Theme.MODULE_HOVER, a));
+				RenderUtil.roundRect(g, x, y, SIDEBAR_W, CAT_H - 4, 5, RenderUtil.alpha(Theme.MODULE_HOVER, a));
 			}
 			int ty = y + (CAT_H - 4 - FontUtil.height()) / 2;
-			FontUtil.draw(g, c.label, x + 12, ty, RenderUtil.alpha(active ? Theme.TEXT : Theme.TEXT_DIM, a));
+			FontUtil.draw(g, c.label, x + 10, ty, RenderUtil.alpha(active ? Theme.TEXT : Theme.TEXT_DIM, a));
 			y += CAT_H;
 		}
 	}
@@ -101,7 +106,7 @@ public class ClickGuiScreen extends Screen {
 		int x = listX();
 		int y = py + PAD;
 		int w = listW();
-		RenderUtil.roundRect(g, x, y, w, SEARCH_H, 6, RenderUtil.alpha(Theme.SEARCH_BG, a));
+		RenderUtil.roundRect(g, x, y, w, SEARCH_H, 5, RenderUtil.alpha(Theme.SEARCH_BG, a));
 
 		String shown;
 		int color;
