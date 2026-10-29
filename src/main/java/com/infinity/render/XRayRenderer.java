@@ -66,9 +66,7 @@ public final class XRayRenderer {
 				: null;
 		StagedVertexBuffer.Draw draw = STAGED.appendDraw(formatBinding, primitive, sorting);
 
-		float[] line = XRayModule.lineRgba();
 		float fillA = XRayModule.fillAlpha();
-		float[] fill = {line[0], line[1], line[2], fillA};
 
 		PoseStack pose = context.poseStack();
 		Vec3 cam = context.levelState().cameraRenderState.pos;
@@ -77,7 +75,15 @@ public final class XRayRenderer {
 		VertexConsumer builder = STAGED.getVertexBuilder(draw);
 		Matrix4fc matrix = pose.last().pose();
 		for (int[] b : blocks) {
+			int argb = b.length > 3 ? b[3] : 0xFF8A2BE2;
+			float[] line = {
+					((argb >> 16) & 0xFF) / 255f,
+					((argb >> 8) & 0xFF) / 255f,
+					(argb & 0xFF) / 255f,
+					1f
+			};
 			if (fillA > 0f) {
+				float[] fill = {line[0], line[1], line[2], fillA};
 				fillBox(builder, matrix, b[0], b[1], b[2], fill);
 			}
 			outline(builder, matrix, b[0], b[1], b[2], line);
