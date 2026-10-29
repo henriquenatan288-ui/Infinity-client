@@ -29,13 +29,6 @@ public class AutoEatModule extends Module {
 		return !s.isEmpty() && s.get(DataComponents.FOOD) != null && !AVOID.contains(s.getItem());
 	}
 
-	private int findFoodSlot(net.minecraft.world.entity.player.Inventory inv) {
-		for (int i = 0; i < 9; i++) {
-			if (isGoodFood(inv.getItem(i))) return i;
-		}
-		return -1;
-	}
-
 	@Override
 	public void onTick() {
 		Minecraft mc = Minecraft.getInstance();
@@ -48,8 +41,14 @@ public class AutoEatModule extends Module {
 		var inv = p.getInventory();
 
 		if (!eating) {
-			if (!low || mc.screen != null) return;
-			int slot = findFoodSlot(inv);
+			if (!low || mc.gui.screen() != null) return;
+			int slot = -1;
+			for (int i = 0; i < 9; i++) {
+				if (isGoodFood(inv.getItem(i))) {
+					slot = i;
+					break;
+				}
+			}
 			if (slot < 0) return;
 			prevSlot = inv.getSelectedSlot();
 			inv.setSelectedSlot(slot);
