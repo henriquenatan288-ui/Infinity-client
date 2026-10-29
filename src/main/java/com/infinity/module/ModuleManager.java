@@ -22,6 +22,7 @@ public final class ModuleManager {
 		MODULES.add(new SusHoleFinderModule());
 		MODULES.add(new SusChunkFinderModule());
 		MODULES.add(new SlowHitModule());
+		MODULES.add(new ParticlesModule());
 		MODULES.add(new FlyModule());
 		MODULES.add(new SpeedModule());
 		MODULES.add(new JesusModule());
