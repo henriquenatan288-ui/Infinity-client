@@ -1,9 +1,15 @@
 package com.infinity.module;
 
+import com.infinity.setting.Setting;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class Module {
 	public final String name;
 	public final Category category;
 	private boolean enabled;
+	private final List<Setting> settings = new ArrayList<>();
 
 	public float hoverAnim = 0f;
 	public float toggleAnim = 0f;
@@ -11,6 +17,15 @@ public abstract class Module {
 	protected Module(String name, Category category) {
 		this.name = name;
 		this.category = category;
+	}
+
+	protected <T extends Setting> T add(T setting) {
+		settings.add(setting);
+		return setting;
+	}
+
+	public List<Setting> settings() {
+		return settings;
 	}
 
 	public boolean isEnabled() {
