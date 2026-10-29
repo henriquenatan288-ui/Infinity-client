@@ -8,8 +8,12 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
 public final class FontUtil {
-	private static final Style STYLE = Style.EMPTY.withFont(
-			new FontDescription.Resource(Identifier.fromNamespaceAndPath("infinity", "inter")));
+	// Troque pra true quando o inter.ttf estiver no repositorio.
+	private static final boolean USE_CUSTOM_FONT = false;
+
+	private static final Style STYLE = USE_CUSTOM_FONT
+			? Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("infinity", "inter")))
+			: Style.EMPTY;
 
 	private FontUtil() {}
 
