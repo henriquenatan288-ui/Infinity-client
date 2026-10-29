@@ -10,23 +10,23 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-/** Marca chunks com muitos blocos "de construcao" (madeira, vidro, tocha, bau...). Estruturas naturais tambem aparecem. */
+/**
+ * Marca chunks com sinais fortes de base de jogador (containers, redstone, decoracao).
+ * Cada bloco tem um peso; blocos que nascem naturalmente (tabua, trilho, tocha...) nao contam.
+ */
 public class SusChunkFinderModule extends Module implements EspSource {
 	private static final int SCAN_EVERY_TICKS = 3;
 	private static final int HALF_HEIGHT = 48;
 
 	private final IntSetting radius = add(new IntSetting("Chunk radius", 2, 6, 4, ""));
-	private final IntSetting threshold = add(new IntSetting("Min blocks", 10, 200, 40, ""));
+	private final IntSetting threshold = add(new IntSetting("Min score", 5, 200, 30, ""));
 	private final ColorSetting color = add(new ColorSetting("Color", 4));
 
-	private final Set<Block> artificial = buildArtificial();
+	private final Map<Block, Integer> weights = buildWeights();
 	private final Map<Long, int[]> found = new HashMap<>();
 	private volatile List<int[]> view = List.of();
 
@@ -39,24 +39,41 @@ public class SusChunkFinderModule extends Module implements EspSource {
 		super("Sus Chunk Finder", Category.VISUALS);
 	}
 
-	private static Set<Block> buildArtificial() {
-		Set<Block> s = new HashSet<>();
-		for (Block b : BuiltInRegistries.BLOCK) {
-			String n = BuiltInRegistries.BLOCK.getKey(b).getPath();
-			if (n.endsWith("_planks") || n.endsWith("_wool") || n.contains("concrete")
-					|| n.contains("glass") || n.contains("bricks") || n.contains("torch")
-					|| n.contains("lantern") || n.contains("chest") || n.contains("fence")
-					|| n.contains("rail") || n.contains("carpet") || n.endsWith("_stairs")
-					|| n.endsWith("_slab") || n.endsWith("_door") || n.endsWith("_bed")
-					|| n.startsWith("polished_") || n.startsWith("smooth_") || n.startsWith("chiseled_")
-					|| n.startsWith("cut_") || n.equals("crafting_table") || n.contains("furnace")
-					|| n.equals("ladder") || n.equals("bookshelf") || n.equals("barrel")
-					|| n.equals("anvil") || n.equals("hay_block") || n.equals("farmland")
-					|| n.equals("tnt") || n.equals("end_rod") || n.equals("campfire")) {
-				s.add(b);
-			}
+	private static int weightOf(String n) {
+		// quase nunca aparecem sozinhos
+		if (n.endsWith("shulker_box") || n.equals("ender_chest") || n.equals("beacon")
+				|| n.equals("enchanting_table")) {
+			return 10;
 		}
-		return s;
+		if (n.equals("hopper") || n.equals("dropper") || n.equals("dispenser") || n.equals("observer")
+				|| n.equals("piston") || n.equals("sticky_piston") || n.equals("repeater")
+				|| n.equals("comparator") || n.equals("redstone_lamp") || n.equals("note_block")
+				|| n.equals("daylight_detector")) {
+			return 8;
+		}
+		// containers e estacoes de trabalho
+		if (n.equals("chest") || n.equals("trapped_chest") || n.equals("barrel") || n.equals("furnace")
+				|| n.equals("blast_furnace") || n.equals("smoker") || n.equals("anvil")
+				|| n.equals("chipped_anvil") || n.equals("damaged_anvil") || n.equals("brewing_stand")
+				|| n.equals("smithing_table")) {
+			return 4;
+		}
+		// decoracao que nao nasce natural
+		if (n.equals("crafting_table") || n.endsWith("_wool") || n.contains("concrete")
+				|| n.endsWith("stained_glass") || n.endsWith("stained_glass_pane")
+				|| n.endsWith("glazed_terracotta")) {
+			return 2;
+		}
+		return 0;
+	}
+
+	private static Map<Block, Integer> buildWeights() {
+		Map<Block, Integer> m = new HashMap<>();
+		for (Block b : BuiltInRegistries.BLOCK) {
+			int w = weightOf(BuiltInRegistries.BLOCK.getKey(b).getPath());
+			if (w > 0) m.put(b, w);
+		}
+		return m;
 	}
 
 	@Override
@@ -135,7 +152,7 @@ public class SusChunkFinderModule extends Module implements EspSource {
 	private void scanChunk(net.minecraft.client.multiplayer.ClientLevel level, int cx, int cz, int py) {
 		int minY = Math.max(level.getMinY(), py - HALF_HEIGHT);
 		int maxY = py + HALF_HEIGHT;
-		int count = 0;
+		int score = 0;
 		int lo = Integer.MAX_VALUE;
 		int hi = Integer.MIN_VALUE;
 
@@ -144,8 +161,9 @@ public class SusChunkFinderModule extends Module implements EspSource {
 			for (int z = 0; z < 16; z++) {
 				for (int y = minY; y <= maxY; y++) {
 					pos.set(cx * 16 + x, y, cz * 16 + z);
-					if (artificial.contains(level.getBlockState(pos).getBlock())) {
-						count++;
+					Integer w = weights.get(level.getBlockState(pos).getBlock());
+					if (w != null) {
+						score += w;
 						if (y < lo) lo = y;
 						if (y > hi) hi = y;
 					}
@@ -154,8 +172,8 @@ public class SusChunkFinderModule extends Module implements EspSource {
 		}
 
 		long key = ((long) cx << 32) ^ (cz & 0xFFFFFFFFL);
-		if (count >= threshold.get()) {
-			found.put(key, new int[]{cx, cz, lo, hi, count});
+		if (score >= threshold.get()) {
+			found.put(key, new int[]{cx, cz, lo, hi, score});
 		} else {
 			found.remove(key);
 		}
