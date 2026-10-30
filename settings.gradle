@@ -9,4 +9,4 @@ pluginManagement {
 	}
 }
 
-rootProject.name = 'infinity-client'
+rootProject.name = 'witch-client'
