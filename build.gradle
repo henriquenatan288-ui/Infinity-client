@@ -17,7 +17,7 @@ dependencies {
 
 loom {
 	mods {
-		"infinity" {
+		"witch" {
 			sourceSet sourceSets.main
 		}
 	}

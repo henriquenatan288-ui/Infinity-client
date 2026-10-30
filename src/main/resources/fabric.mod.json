@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "id": "infinity",
+  "id": "witch",
   "version": "${version}",
-  "name": "Infinity Client",
-  "description": "Infinity Client",
+  "name": "Witch Client",
+  "description": "Witch Client",
   "authors": ["henriquenatan288-ui"],
   "license": "All-Rights-Reserved",
   "environment": "client",
   "entrypoints": {
-    "client": ["com.infinity.InfinityClient"]
+    "client": ["com.witch.WitchClient"]
   },
   "depends": {
     "fabricloader": ">=0.19.0",
