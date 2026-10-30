@@ -18,6 +18,7 @@ public final class ModuleManager {
 		MODULES.add(new XRayModule());
 		MODULES.add(new PlayerEspModule());
 		MODULES.add(new StorageEspModule());
+		MODULES.add(new FarmEspModule());
 		MODULES.add(new TracersModule());
 		MODULES.add(new SusHoleFinderModule());
 		MODULES.add(new SusChunkFinderModule());
