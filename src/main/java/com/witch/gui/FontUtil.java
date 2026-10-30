@@ -8,8 +8,8 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
 public final class FontUtil {
-	// Fonte Inter (OFL) em assets/witch/font/inter.otf; ponha false para voltar a fonte padrao.
-	private static final boolean USE_CUSTOM_FONT = true;
+	// Inter (inter.otf) fica desligada: com ela ligada as letras sumiam no jogo. Teste com true quando investigarmos.
+	private static final boolean USE_CUSTOM_FONT = false;
 
 	private static final Style STYLE = USE_CUSTOM_FONT
 			? Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("witch", "inter")))
