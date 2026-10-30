@@ -114,6 +114,7 @@ public class ClickGuiScreen extends Screen {
 		py = (this.height - panelH) / 2 + (int) ((1f - a) * 8f);
 
 		g.fill(0, 0, this.width, this.height, RenderUtil.alpha(0x44000000, a));
+		GlassShader.glow(g, px, py, panelW, panelH, a);
 		GlassShader.shadow(g, px, py, panelW, panelH, a);
 		RenderUtil.roundRect(g, px, py, panelW, panelH, 8, RenderUtil.alpha(TimeTheme.panel, a));
 		GlassShader.glass(g, px, py, panelW, panelH, a);

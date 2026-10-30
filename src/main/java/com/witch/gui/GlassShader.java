@@ -16,6 +16,22 @@ public final class GlassShader {
 	private static final long SHIMMER_MS = 7000L; // tempo de uma passada do reflexo
 	private static final int SHIMMER_HALF = 26;   // meia largura do reflexo (px)
 
+	private static final int GLOW_LAYERS = 6;
+	private static final int GLOW_STEP = 2;
+
+	/** Luz colorida em volta do painel, pulsando devagar. Chamar ANTES da sombra. */
+	public static void glow(GuiGraphicsExtractor g, int x, int y, int w, int h, float a) {
+		double t = (System.currentTimeMillis() % 4000L) / 4000.0;
+		float pulse = 0.75f + 0.25f * (float) Math.sin(t * Math.PI * 2);
+		int color = Theme.ACCENT;
+		for (int i = GLOW_LAYERS; i >= 1; i--) {
+			float k = 1f - (i - 1f) / GLOW_LAYERS;
+			int c = RenderUtil.alpha(color, a * pulse * (0.025f + 0.07f * k * k));
+			int d = i * GLOW_STEP;
+			RenderUtil.roundRect(g, x - d, y - d, w + d * 2, h + d * 2, R + d, c);
+		}
+	}
+
 	/** Sombra difusa atras do painel. Chamar ANTES de desenhar o painel. */
 	public static void shadow(GuiGraphicsExtractor g, int x, int y, int w, int h, float a) {
 		for (int i = SHADOW_LAYERS; i >= 1; i--) {
