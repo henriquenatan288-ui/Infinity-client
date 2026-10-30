@@ -26,6 +26,7 @@ public final class ModuleManager {
 		MODULES.add(new NoGhostBlocksModule());
 		MODULES.add(new BreakDelayModule());
 		MODULES.add(new AncientFinderModule());
+		MODULES.add(new TriggerBotModule());
 		MODULES.add(new ParticlesModule());
 		MODULES.add(new FlyModule());
 		MODULES.add(new SpeedModule());
