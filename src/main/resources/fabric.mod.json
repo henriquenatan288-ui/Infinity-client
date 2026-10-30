@@ -7,6 +7,7 @@
   "authors": ["henriquenatan288-ui"],
   "license": "All-Rights-Reserved",
   "environment": "client",
+  "mixins": ["witch.mixins.json"],
   "entrypoints": {
     "client": ["com.witch.WitchClient"]
   },
