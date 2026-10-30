@@ -28,6 +28,7 @@ public final class ModuleManager {
 		MODULES.add(new SpeedModule());
 		MODULES.add(new JesusModule());
 		MODULES.add(new AutoEatModule());
+		MODULES.add(new AutoToolModule());
 
 		for (Module m : MODULES) {
 			if (m instanceof EspSource s) {
