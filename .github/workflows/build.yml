@@ -13,7 +13,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.5.1
-      - run: gradle build --stacktrace
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle build --stacktrace 2>&1 | tee build.log
+      - name: Report compile errors
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "error:|\.java:[0-9]+|symbol:|location:" build.log | head -20 | while IFS= read -r l; do echo "::error::$l"; done
       - uses: actions/upload-artifact@v4
         with:
           name: witch-client
