@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/** Marca buracos de 1x1 (pocos e tunéis estreitos) cercados de bloco solido: entrada tipica de base escondida. */
+/** Marca buracos de 1x1 e tuneis de 1x1 ou 1x2 (corredor de jogador) cercados de bloco solido: entrada tipica de base escondida. */
 public class SusHoleFinderModule extends Module implements EspSource {
 	private static final int MAX_RESULTS = 48;
 	private static final int SCAN_INTERVAL_TICKS = 40;
@@ -152,6 +152,52 @@ public class SusHoleFinderModule extends Module implements EspSource {
 						} else {
 							if (run >= min) {
 								out.add(new int[]{ox + ix, oy + iy, oz + iz - run, ox + ix + 1, oy + iy + 1, oz + iz, col});
+							}
+							run = 0;
+						}
+					}
+				}
+			}
+		}
+
+		if (tunnels.enabled()) {
+			int col = tunnels.color();
+			// tunel de 1 de largura e 2 de altura (o tipico "corredor" de jogador), eixo X
+			for (int iy = 1; iy <= d - 3; iy++) {
+				for (int iz = 1; iz <= d - 2; iz++) {
+					int run = 0;
+					for (int ix = 1; ix <= d - 1; ix++) {
+						boolean hit = ix <= d - 2
+								&& g[idx(d, ix, iy, iz)] == 0 && g[idx(d, ix, iy + 1, iz)] == 0
+								&& g[idx(d, ix, iy - 1, iz)] == 1 && g[idx(d, ix, iy + 2, iz)] == 1
+								&& g[idx(d, ix, iy, iz + 1)] == 1 && g[idx(d, ix, iy, iz - 1)] == 1
+								&& g[idx(d, ix, iy + 1, iz + 1)] == 1 && g[idx(d, ix, iy + 1, iz - 1)] == 1;
+						if (hit) {
+							run++;
+						} else {
+							if (run >= min) {
+								out.add(new int[]{ox + ix - run, oy + iy, oz + iz, ox + ix, oy + iy + 2, oz + iz + 1, col});
+							}
+							run = 0;
+						}
+					}
+				}
+			}
+			// idem, eixo Z
+			for (int ix = 1; ix <= d - 2; ix++) {
+				for (int iy = 1; iy <= d - 3; iy++) {
+					int run = 0;
+					for (int iz = 1; iz <= d - 1; iz++) {
+						boolean hit = iz <= d - 2
+								&& g[idx(d, ix, iy, iz)] == 0 && g[idx(d, ix, iy + 1, iz)] == 0
+								&& g[idx(d, ix, iy - 1, iz)] == 1 && g[idx(d, ix, iy + 2, iz)] == 1
+								&& g[idx(d, ix + 1, iy, iz)] == 1 && g[idx(d, ix - 1, iy, iz)] == 1
+								&& g[idx(d, ix + 1, iy + 1, iz)] == 1 && g[idx(d, ix - 1, iy + 1, iz)] == 1;
+						if (hit) {
+							run++;
+						} else {
+							if (run >= min) {
+								out.add(new int[]{ox + ix, oy + iy, oz + iz - run, ox + ix + 1, oy + iy + 2, oz + iz, col});
 							}
 							run = 0;
 						}

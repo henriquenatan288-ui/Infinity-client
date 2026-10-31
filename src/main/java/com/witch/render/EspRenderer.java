@@ -20,7 +20,6 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import java.util.ArrayList;
@@ -186,7 +185,17 @@ public final class EspRenderer {
 
 		/** Linha do centro da tela ate o ponto (x, y, z). */
 		public void tracer(double tx, double ty, double tz, int argb) {
-			float ax = (float) start.x, ay = (float) start.y, az = (float) start.z;
+			line(start.x, start.y, start.z, tx, ty, tz, argb, 1f);
+		}
+
+		/** Caixa so de preenchimento (sem contorno), com transparencia propria. */
+		public void solid(double x0, double y0, double z0, double x1, double y1, double z1, int argb, float alpha) {
+			fillBox(b(), m, (float) x0, (float) y0, (float) z0, (float) x1, (float) y1, (float) z1, rgba(argb, alpha));
+		}
+
+		/** Fita de A ate B (largura cresce com a distancia pra ficar visivel). */
+		public void line(double sx, double sy, double sz, double tx, double ty, double tz, int argb, float alpha) {
+			float ax = (float) sx, ay = (float) sy, az = (float) sz;
 			float bx = (float) tx, by = (float) ty, bz = (float) tz;
 			float dx = bx - ax, dy = by - ay, dz = bz - az;
 			float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
@@ -212,7 +221,7 @@ public final class EspRenderer {
 
 			float w0 = Math.max(0.004f, K * dist(ax, ay, az));
 			float w1 = Math.max(0.004f, K * dist(bx, by, bz));
-			float[] c = rgba(argb, 1f);
+			float[] c = rgba(argb, alpha);
 			VertexConsumer vb = b();
 			quad(vb, m, c,
 					ax - ux * w0, ay - uy * w0, az - uz * w0,
