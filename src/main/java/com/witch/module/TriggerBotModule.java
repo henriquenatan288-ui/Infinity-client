@@ -33,6 +33,6 @@ public class TriggerBotModule extends Module {
 		if (p.getAttackStrengthScale(0f) < cooldown.get() / 100f) return;
 
 		mc.gameMode.attack(p, e);
-		p.swing(InteractionHand.MAIN_HAND, p.getMainHandItem().getAttackAnimation(), false);
+		p.swing(InteractionHand.MAIN_HAND);
 	}
 }
