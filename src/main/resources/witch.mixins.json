@@ -3,6 +3,8 @@
   "package": "com.witch.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "CameraMixin",
+    "MouseHandlerMixin",
     "MultiPlayerGameModeMixin"
   ],
   "injectors": {
