@@ -120,7 +120,7 @@ public class ClickGuiScreen extends Screen {
 		GlassShader.glass(g, px, py, panelW, panelH, a);
 		GlassShader.sidebar(g, px + PAD, py + PAD, SIDEBAR_W, panelH - PAD * 2, a);
 
-		GuiVisuals.render(g, px, py, panelW, panelH, a);
+		WitchVisuals.render(g, px, py, panelW, panelH, a);
 
 		leaves.update(speed, panelW, panelH);
 		leaves.render(g, px, py, panelW, panelH, a);
