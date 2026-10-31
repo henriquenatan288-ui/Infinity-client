@@ -219,13 +219,35 @@ public class ClickGuiScreen extends Screen {
 	}
 
 	/** Barra de rolagem: trilho fraco + alca; so aparece quando a lista e maior que a area. */
+	private static final int SB_W = 8;   // largura visivel
+	private static final int SB_HIT = 22; // area de toque (mais larga que a barra)
+	private int sbX, sbY, sbH, sbThumbH;
+	private float sbMax = 0f;
+	private boolean sbDrag = false;
+
 	private void drawScrollbar(GuiGraphicsExtractor g, int x, int y, int w, int h, int contentH, float scr, float maxScroll, float a) {
-		if (maxScroll <= 0) return;
-		int bx = x + w - 4;
-		RenderUtil.roundRect(g, bx, y, 3, h, 1, RenderUtil.alpha(TimeTheme.dim, a * 0.18f));
-		int thumbH = Math.max(14, Math.round(h * (h / (float) contentH)));
+		if (maxScroll <= 0) {
+			sbMax = 0f;
+			return;
+		}
+		int bx = x + w - SB_W - 1;
+		int thumbH = Math.max(24, Math.round(h * (h / (float) contentH)));
 		int thumbY = y + Math.round((h - thumbH) * (scr / maxScroll));
-		RenderUtil.roundRect(g, bx, thumbY, 3, thumbH, 1, RenderUtil.alpha(Theme.ACCENT, a * 0.85f));
+		sbX = bx;
+		sbY = y;
+		sbH = h;
+		sbThumbH = thumbH;
+		sbMax = maxScroll;
+		RenderUtil.roundRect(g, bx, y, SB_W, h, 4, RenderUtil.alpha(TimeTheme.dim, a * 0.22f));
+		int c = sbDrag ? Theme.ACCENT : RenderUtil.mix(Theme.ACCENT, 0xFFFFFFFF, 0.15f);
+		RenderUtil.roundRect(g, bx + 1, thumbY, SB_W - 2, thumbH, 3, RenderUtil.alpha(c, a * 0.95f));
+	}
+
+	private void dragScrollbarTo(double my) {
+		float span = Math.max(1f, sbH - sbThumbH);
+		float f = Mth.clamp((float) ((my - sbY - sbThumbH / 2.0) / span), 0f, 1f);
+		scrollTarget = f * sbMax;
+		scroll = scrollTarget;
 	}
 
 	private void renderSettings(GuiGraphicsExtractor g, int mx, int my, float speed, float a) {
@@ -376,6 +398,12 @@ public class ClickGuiScreen extends Screen {
 		searchFocused = RenderUtil.inside(mx, my, listX(), py + PAD, listW(), SEARCH_H);
 		if (searchFocused) return true;
 
+		if (sbMax > 0f && button == 0 && RenderUtil.inside(mx, my, sbX - (SB_HIT - SB_W) + 4, sbY, SB_HIT, sbH)) {
+			sbDrag = true;
+			dragScrollbarTo(my);
+			return true;
+		}
+
 		int x = px + PAD;
 		int y = py + PAD;
 		for (Category c : Category.values()) {
@@ -428,6 +456,10 @@ public class ClickGuiScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent click, double offsetX, double offsetY) {
+		if (sbDrag) {
+			dragScrollbarTo(click.y());
+			return true;
+		}
 		if (dragging != null) {
 			dragging.setFraction((float) ((click.x() - dragX) / dragW));
 			return true;
@@ -442,6 +474,10 @@ public class ClickGuiScreen extends Screen {
 
 	@Override
 	public boolean mouseReleased(MouseButtonEvent click) {
+		if (sbDrag) {
+			sbDrag = false;
+			return true;
+		}
 		if (dragging != null) {
 			dragging = null;
 			Config.save();

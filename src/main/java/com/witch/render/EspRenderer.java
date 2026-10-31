@@ -82,10 +82,16 @@ public final class EspRenderer {
 
 		PoseStack pose = context.poseStack();
 		Vec3 cam = context.levelState().cameraRenderState.pos;
-		// Origem dos tracers: ponto fixo na tela (1 bloco a frente da camera), desfazendo o balanco do view bobbing.
-		Matrix4f base = new Matrix4f(pose.last().pose());
-		Vector3f front = base.invert(new Matrix4f()).transformPosition(new Vector3f(0f, 0f, -1f));
-		Vec3 origin = new Vec3(cam.x + front.x(), cam.y + front.y(), cam.z + front.z());
+		// Origem dos tracers: 1 bloco a frente da camera, na direcao real da tela (a rotacao da camera esta
+		// na matriz de modelo-vista, nao no poseStack). Se a matriz vier sem rotacao, cai no olhar do jogador.
+		Vector3f front = new Matrix4f(RenderSystem.getModelViewMatrixCopy()).invert()
+				.transformPosition(new Vector3f(0f, 0f, -1f));
+		Vec3 origin;
+		if (Math.abs(front.x()) < 1.0E-4f && Math.abs(front.y()) < 1.0E-4f && Math.abs(front.z() + 1f) < 1.0E-4f) {
+			origin = mc.player.getEyePosition(pt).add(mc.player.getViewVector(pt));
+		} else {
+			origin = new Vec3(cam.x + front.x(), cam.y + front.y(), cam.z + front.z());
+		}
 		pose.pushPose();
 		pose.translate(-cam.x, -cam.y, -cam.z);
 		Esp esp = new Esp(pose.last().pose(), cam, pt, origin);
