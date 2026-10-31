@@ -20,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import java.util.ArrayList;
@@ -81,9 +82,13 @@ public final class EspRenderer {
 
 		PoseStack pose = context.poseStack();
 		Vec3 cam = context.levelState().cameraRenderState.pos;
+		// Origem dos tracers: ponto fixo na tela (1 bloco a frente da camera), desfazendo o balanco do view bobbing.
+		Matrix4f base = new Matrix4f(pose.last().pose());
+		Vector3f front = base.invert(new Matrix4f()).transformPosition(new Vector3f(0f, 0f, -1f));
+		Vec3 origin = new Vec3(cam.x + front.x(), cam.y + front.y(), cam.z + front.z());
 		pose.pushPose();
 		pose.translate(-cam.x, -cam.y, -cam.z);
-		Esp esp = new Esp(pose.last().pose(), cam, pt, mc);
+		Esp esp = new Esp(pose.last().pose(), cam, pt, origin);
 		for (EspSource s : SOURCES) {
 			if (s.active()) s.collect(esp);
 		}
@@ -130,13 +135,11 @@ public final class EspRenderer {
 		private StagedVertexBuffer.Draw draw;
 		private VertexConsumer buf;
 
-		private Esp(Matrix4fc m, Vec3 cam, float partial, Minecraft mc) {
+		private Esp(Matrix4fc m, Vec3 cam, float partial, Vec3 origin) {
 			this.m = m;
 			this.cam = cam;
 			this.partial = partial;
-			Vec3 eye = mc.player.getEyePosition(partial);
-			Vec3 look = mc.player.getViewVector(partial);
-			this.start = eye.add(look);
+			this.start = origin;
 		}
 
 		public float partial() {
