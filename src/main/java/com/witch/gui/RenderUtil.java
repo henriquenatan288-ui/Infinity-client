@@ -24,7 +24,17 @@ public final class RenderUtil {
 	public static void roundRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
 		if (w <= 0 || h <= 0) return;
 		int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+		// O miolo (sem cantos) e um retangulo so: 1 fill em vez de 1 por linha.
+		int midTop = r;
+		int midBottom = h - r;
+		if (midBottom > midTop) {
+			g.fill(x, y + midTop, x + w, y + midBottom, color);
+		}
 		for (int i = 0; i < h; i++) {
+			if (i >= midTop && i < midBottom) {
+				i = midBottom - 1;
+				continue;
+			}
 			double edge = 0.0;
 			if (r > 0) {
 				if (i < r) {

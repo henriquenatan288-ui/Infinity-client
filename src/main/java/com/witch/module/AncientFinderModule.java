@@ -31,6 +31,9 @@ public class AncientFinderModule extends Module implements EspSource {
 	/** So o toggle importa; a cor do chip nao e usada. */
 	private final OreSetting lavaOnly = add(new OreSetting("Lava only", false, 0));
 
+	private static final int SCAN_EVERY_TICKS = 4;
+	private int tickCounter = 0;
+
 	private final Map<Long, List<int[]>> perChunk = new HashMap<>();
 	private final List<long[]> queue = new ArrayList<>();
 	private volatile List<int[]> blocks = List.of();
@@ -77,6 +80,8 @@ public class AncientFinderModule extends Module implements EspSource {
 			reset();
 			return;
 		}
+
+		if (++tickCounter % SCAN_EVERY_TICKS != 0) return;
 
 		int pcx = mc.player.blockPosition().getX() >> 4;
 		int pcz = mc.player.blockPosition().getZ() >> 4;
