@@ -5,6 +5,7 @@
   "name": "Witch Client",
   "description": "Witch Client",
   "authors": ["henriquenatan288-ui"],
+  "icon": "assets/witch/icon.png",
   "license": "All-Rights-Reserved",
   "environment": "client",
   "mixins": ["witch.mixins.json"],
