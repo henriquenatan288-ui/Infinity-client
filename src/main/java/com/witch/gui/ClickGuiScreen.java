@@ -6,6 +6,7 @@ import com.witch.module.Module;
 import com.witch.module.ModuleManager;
 import com.witch.setting.ColorSetting;
 import com.witch.setting.IntSetting;
+import com.witch.setting.KeybindSetting;
 import com.witch.setting.OreSetting;
 import com.witch.setting.Setting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -89,11 +90,12 @@ public class ClickGuiScreen extends Screen {
 
 	private int listX() { return px + PAD + SIDEBAR_W + PAD; }
 	private int listY() { return py + PAD + SEARCH_H + 6; }
-	private int listW() { return panelW - PAD * 3 - SIDEBAR_W; }
+	private static final int SB_GUTTER = 16;
+	private int listW() { return panelW - PAD * 3 - SIDEBAR_W - SB_GUTTER; }
 	private int listH() { return panelH - (listY() - py) - PAD; }
 
 	private static int rowH(Setting s) {
-		if (s instanceof OreSetting) return ORE_ROW_H;
+		if (s instanceof OreSetting || s instanceof KeybindSetting) return ORE_ROW_H;
 		return s instanceof ColorSetting ? COLOR_ROW_H : INT_ROW_H;
 	}
 
@@ -230,7 +232,7 @@ public class ClickGuiScreen extends Screen {
 			sbMax = 0f;
 			return;
 		}
-		int bx = x + w - SB_W - 1;
+		int bx = x + w + 5;
 		int thumbH = Math.max(24, Math.round(h * (h / (float) contentH)));
 		int thumbY = y + Math.round((h - thumbH) * (scr / maxScroll));
 		sbX = bx;
@@ -303,6 +305,21 @@ public class ClickGuiScreen extends Screen {
 					RenderUtil.roundRect(g, sx, sy, SWATCH, SWATCH, 3,
 							RenderUtil.alpha(ColorSetting.PALETTE[i], a));
 				}
+			} else if (s instanceof KeybindSetting ks) {
+				int rh = ORE_ROW_H - 2;
+				boolean hover = RenderUtil.inside(mx, my, x, ry, w, rh)
+						&& RenderUtil.inside(mx, my, x, ly, w, lh);
+				if (hover || ks.listening) {
+					RenderUtil.roundRect(g, x, ry, w, rh, 5, RenderUtil.alpha(TimeTheme.hover, a));
+				}
+				FontUtil.draw(g, ks.name, x + 8, ry + (rh - fh) / 2, RenderUtil.alpha(TimeTheme.dim, a));
+				String lab = ks.label();
+				int cw = Math.max(CHIP_W, FontUtil.width(lab) + 12);
+				int cx = x + w - 8 - cw;
+				RenderUtil.roundRect(g, cx, ry + 1, cw, rh - 2, 4,
+						RenderUtil.alpha(ks.listening ? Theme.ACCENT : TimeTheme.search, a));
+				FontUtil.draw(g, lab, cx + (cw - FontUtil.width(lab)) / 2, ry + (rh - fh) / 2,
+						RenderUtil.alpha(ks.listening ? 0xFFFFFFFF : TimeTheme.input, a));
 			} else if (s instanceof OreSetting os) {
 				int rh = ORE_ROW_H - 2;
 				boolean hover = RenderUtil.inside(mx, my, x, ry, w, rh)
@@ -373,6 +390,11 @@ public class ClickGuiScreen extends Screen {
 						return true;
 					}
 				}
+			} else if (s instanceof KeybindSetting ks) {
+				if (RenderUtil.inside(mx, my, x, ry, w, ORE_ROW_H - 2)) {
+					ks.listening = !ks.listening;
+					return true;
+				}
 			} else if (s instanceof OreSetting os) {
 				if (RenderUtil.inside(mx, my, x, ry, w, ORE_ROW_H - 2)) {
 					final boolean onChip = mx >= x + w - 8 - CHIP_W - 4;
@@ -398,7 +420,7 @@ public class ClickGuiScreen extends Screen {
 		searchFocused = RenderUtil.inside(mx, my, listX(), py + PAD, listW(), SEARCH_H);
 		if (searchFocused) return true;
 
-		if (sbMax > 0f && button == 0 && RenderUtil.inside(mx, my, sbX - (SB_HIT - SB_W) + 4, sbY, SB_HIT, sbH)) {
+		if (sbMax > 0f && button == 0 && RenderUtil.inside(mx, my, sbX - 6, sbY, SB_HIT, sbH)) {
 			sbDrag = true;
 			dragScrollbarTo(my);
 			return true;
@@ -514,6 +536,20 @@ public class ClickGuiScreen extends Screen {
 	@Override
 	public boolean keyPressed(KeyEvent input) {
 		int key = input.key();
+		if (settingsOf != null) {
+			for (Setting st : settingsOf.settings()) {
+				if (st instanceof KeybindSetting ks && ks.listening) {
+					ks.listening = false;
+					if (key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE) {
+						ks.setKey(0);
+					} else if (key != GLFW.GLFW_KEY_ESCAPE) {
+						ks.setKey(key);
+					}
+					Config.save();
+					return true;
+				}
+			}
+		}
 		if (searchFocused) {
 			if (key == GLFW.GLFW_KEY_BACKSPACE) {
 				if (!search.isEmpty()) search = search.substring(0, search.length() - 1);

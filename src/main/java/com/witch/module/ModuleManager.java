@@ -65,6 +65,25 @@ public final class ModuleManager {
 		return null;
 	}
 
+	/** Liga/desliga modulos pela tecla configurada (so fora de telas). */
+	public static void pollKeys(net.minecraft.client.Minecraft mc) {
+		var window = mc.getWindow();
+		boolean free = mc.gui.screen() == null;
+		for (Module m : MODULES) {
+			var kb = m.keybind;
+			if (kb.key() == 0) {
+				kb.wasDown = false;
+				continue;
+			}
+			boolean down = com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, kb.key());
+			if (down && !kb.wasDown && free) {
+				m.toggle();
+				com.witch.config.Config.save();
+			}
+			kb.wasDown = down;
+		}
+	}
+
 	public static void tick() {
 		for (Module m : MODULES) {
 			if (m.isEnabled()) m.onTick();
