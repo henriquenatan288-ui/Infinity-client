@@ -215,6 +215,17 @@ public class ClickGuiScreen extends Screen {
 			ry += ROW_H;
 		}
 		g.disableScissor();
+		drawScrollbar(g, x, y, w, h, contentH, scroll, maxScroll, a);
+	}
+
+	/** Barra de rolagem: trilho fraco + alca; so aparece quando a lista e maior que a area. */
+	private void drawScrollbar(GuiGraphicsExtractor g, int x, int y, int w, int h, int contentH, float scr, float maxScroll, float a) {
+		if (maxScroll <= 0) return;
+		int bx = x + w - 4;
+		RenderUtil.roundRect(g, bx, y, 3, h, 1, RenderUtil.alpha(TimeTheme.dim, a * 0.18f));
+		int thumbH = Math.max(14, Math.round(h * (h / (float) contentH)));
+		int thumbY = y + Math.round((h - thumbH) * (scr / maxScroll));
+		RenderUtil.roundRect(g, bx, thumbY, 3, thumbH, 1, RenderUtil.alpha(Theme.ACCENT, a * 0.85f));
 	}
 
 	private void renderSettings(GuiGraphicsExtractor g, int mx, int my, float speed, float a) {
@@ -295,11 +306,7 @@ public class ClickGuiScreen extends Screen {
 		g.disableScissor();
 
 		// barra de rolagem
-		if (maxScroll > 0) {
-			int thumbH = Math.max(10, Math.round(lh * (lh / (float) contentH)));
-			int thumbY = ly + Math.round((lh - thumbH) * (scroll / maxScroll));
-			RenderUtil.roundRect(g, x + w - 3, thumbY, 2, thumbH, 1, RenderUtil.alpha(TimeTheme.dim, a * 0.6f));
-		}
+		drawScrollbar(g, x, ly, w, lh, contentH, scroll, maxScroll, a);
 	}
 
 	private boolean clickSettings(double mx, double my) {

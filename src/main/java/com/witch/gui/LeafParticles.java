@@ -4,10 +4,11 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.Random;
 
-/** Folhas caindo no fundo da GUI, desenhadas so com quadradinhos (sem shader). */
+/** Chapeus de bruxa pequenos caindo no fundo da GUI, desenhados so com retangulos (sem shader). */
 public final class LeafParticles {
 	private static final int COUNT = 10;
-	private static final int[] PALETTE = {0xFF8A2BE2, 0xFFB57BEA, 0xFFD2B0F5, 0xFF6A1FB5};
+	private static final int[] PALETTE = {0xFF4B1A80, 0xFF6A1FB5, 0xFF2E1065, 0xFF5B21B6};
+	private static final int BAND = 0xFFB57BEA;
 
 	private static final class Leaf {
 		float x, y, vx, vy, size, angle, spin, phase;
@@ -54,29 +55,21 @@ public final class LeafParticles {
 		g.enableScissor(ox, oy, ox + w, oy + h);
 		for (Leaf l : leaves) {
 			if (l == null) continue;
-			drawLeaf(g, ox + l.x, oy + l.y, l.size, l.angle, RenderUtil.alpha(l.color, alpha * 0.45f));
+			drawHat(g, Math.round(ox + l.x), Math.round(oy + l.y), l.color, alpha * 0.8f);
 		}
 		g.disableScissor();
 	}
 
-	private void drawLeaf(GuiGraphicsExtractor g, float cx, float cy, float size, float angle, int color) {
-		float dx = (float) Math.cos(angle);
-		float dy = (float) Math.sin(angle);
-		float perpX = -dy;
-		float perpY = dx;
-		int steps = Math.max(4, (int) (size * 1.2f));
-		for (int i = 0; i <= steps; i++) {
-			float t = (i / (float) steps) * 2f - 1f;
-			float half = (1f - t * t) * size * 0.45f;
-			float ax = cx + dx * t * size;
-			float ay = cy + dy * t * size;
-			int n = Math.max(1, (int) half);
-			for (int k = -n; k <= n; k++) {
-				float off = (k / (float) n) * half;
-				int x = Math.round(ax + perpX * off);
-				int y = Math.round(ay + perpY * off);
-				g.fill(x, y, x + 2, y + 2, color);
-			}
-		}
+	/** Chapeu de bruxa em pixel art (12 x 11 px): ponta torta, cone, faixa e aba. */
+	private void drawHat(GuiGraphicsExtractor g, int x, int y, int body, float alpha) {
+		int c = RenderUtil.alpha(body, alpha);
+		int band = RenderUtil.alpha(BAND, alpha);
+		// ponta (inclinada pra direita), cone, faixa e aba; cada celula tem 2 px
+		g.fill(x + 6, y, x + 8, y + 2, c);
+		g.fill(x + 4, y + 2, x + 8, y + 4, c);
+		g.fill(x + 3, y + 4, x + 9, y + 6, c);
+		g.fill(x + 2, y + 6, x + 10, y + 8, c);
+		g.fill(x + 2, y + 8, x + 10, y + 9, band);
+		g.fill(x, y + 9, x + 12, y + 11, c);
 	}
 }
