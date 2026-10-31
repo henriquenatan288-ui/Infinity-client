@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ public class AncientFinderModule extends Module implements EspSource {
 
 	private final IntSetting range = add(new IntSetting("Range", 1, 8, 4, " chunks"));
 	private final IntSetting fill = add(new IntSetting("Fill opacity", 0, 40, 14, "%"));
+	private final IntSetting maxCluster = add(new IntSetting("Max cluster", 1, 16, 4, " blocks"));
 	private final OreSetting debris = add(new OreSetting("Ancient Debris", true, 2));
 	/** So o toggle importa; a cor do chip nao e usada. */
 	private final OreSetting lavaOnly = add(new OreSetting("Lava only", false, 0));
@@ -118,6 +120,7 @@ public class AncientFinderModule extends Module implements EspSource {
 		int pz = mc.player.blockPosition().getZ();
 		List<int[]> all = new ArrayList<>();
 		for (List<int[]> l : perChunk.values()) all.addAll(l);
+		all = dropBigClusters(all, maxCluster.get());
 		all.sort(Comparator.comparingLong(b -> {
 			long dx = b[0] - px;
 			long dy = b[1] - py;
@@ -154,5 +157,44 @@ public class AncientFinderModule extends Module implements EspSource {
 			if (level.getFluidState(n).is(FluidTags.LAVA)) return true;
 		}
 		return false;
+	}
+
+	/** Remove grupos de debris colados com mais de "max" blocos (tipico de isca de anti-xray). Vizinhanca 3x3x3. */
+	private static List<int[]> dropBigClusters(List<int[]> all, int max) {
+		Map<Long, Integer> index = new HashMap<>();
+		for (int i = 0; i < all.size(); i++) {
+			int[] b = all.get(i);
+			index.put(BlockPos.asLong(b[0], b[1], b[2]), i);
+		}
+		boolean[] seen = new boolean[all.size()];
+		List<int[]> keep = new ArrayList<>();
+		for (int i = 0; i < all.size(); i++) {
+			if (seen[i]) continue;
+			List<Integer> group = new ArrayList<>();
+			ArrayDeque<Integer> stack = new ArrayDeque<>();
+			stack.push(i);
+			seen[i] = true;
+			while (!stack.isEmpty()) {
+				int cur = stack.pop();
+				group.add(cur);
+				int[] b = all.get(cur);
+				for (int dx = -1; dx <= 1; dx++) {
+					for (int dy = -1; dy <= 1; dy++) {
+						for (int dz = -1; dz <= 1; dz++) {
+							if (dx == 0 && dy == 0 && dz == 0) continue;
+							Integer j = index.get(BlockPos.asLong(b[0] + dx, b[1] + dy, b[2] + dz));
+							if (j != null && !seen[j]) {
+								seen[j] = true;
+								stack.push(j);
+							}
+						}
+					}
+				}
+			}
+			if (group.size() <= max) {
+				for (int g : group) keep.add(all.get(g));
+			}
+		}
+		return keep;
 	}
 }
